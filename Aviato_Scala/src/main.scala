@@ -11,11 +11,9 @@ import _root_.org.lwjgl.system.MemoryUtil._
 import _root_.java.nio.Buffer._
 import _root_.java.nio.FloatBuffer._
 
+
 object Example{
-  
-  var vert:Array[Float] = new Array[Float](6)
-  var vbo:Int = -1;
-  var vao:Int = -1;
+  var quadarr:Array[Quad] = new Array[Quad](10)
   
   def getFloatBuffer(buffer: Array[Float]) : java.nio.FloatBuffer =
   {
@@ -25,28 +23,26 @@ object Example{
     return v
   } 
   
-  def initArray()
-  {
-    vert(0) = -1.0f;
-    vert(1) = -1.0f;
-    vert(2) = 0.0f;
-    vert(3) = 1.0f;
-    vert(4) = 1.0f;
-    vert(5) = -1.0f;
+  def initArray(qq:Array[Quad], index:Int)
+  {  
+    var q:Quad = new Quad()
+    q.verts = Array[Float](-1.0f, -1.0f, 0.0f, 1.0f, 1.0f, -1.0f)
     
-    vao = glGenVertexArrays()
-    glBindVertexArray(vao)
+    q.vao = glGenVertexArrays()
+    glBindVertexArray(q.vao)
     
-    vbo = glGenBuffers()
-    glBindBuffer(GL_ARRAY_BUFFER, vbo)
-    glBufferData(GL_ARRAY_BUFFER, getFloatBuffer(vert), GL_STATIC_DRAW)
+    q.vbo = glGenBuffers()
+    glBindBuffer(GL_ARRAY_BUFFER, q.vbo)
+    glBufferData(GL_ARRAY_BUFFER, getFloatBuffer(q.verts), GL_STATIC_DRAW)
     glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0)
     //glBindBuffer(GL_ARRAY_BUFFER, 0)
+    
+    qq(index) = q
   }
   
   def render()
   {
-    glBindVertexArray(vao)
+    glBindVertexArray(quadarr(0).vao)
     glEnableVertexAttribArray(0)
     glDrawArrays(GL_TRIANGLES, 0, 3)
     glDisableVertexAttribArray(0)
@@ -55,7 +51,7 @@ object Example{
   
   def loop(window: Long){
     GL.createCapabilities()
-    initArray()
+    initArray(quadarr, 0)
     glClearColor(0.3f, 0.3f, 0.3f, 1.0f)
 
     while(glfwWindowShouldClose(window) == GLFW_FALSE)
