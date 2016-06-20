@@ -59,56 +59,15 @@ object Main {
     }
   }
 
-  def update() {
-    if (projVoando == 1)
-      animaProjetil()
-    else
-      controleIteracoes(window)
-  }
-
-  def render() {
-    shader.useShader()
-    val outer = new Breaks;
-    outer.breakable {
-      quadarr.map( q => {
-        renderEntity(q);
-      })
-    }
-    shader.stopShader()
-    
-    drawVetorVelocidade();
-    glfwSwapBuffers(window); // swap the color buffers
-    glfwPollEvents();
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  }
-  
-  def renderEntity(q:Quad){
-    shader.modelMatrix = Matrix4f
-      .translate(q.position.x, q.position.y, 0.0f)
-      .multiply(Matrix4f.scale(q.scale.x, q.scale.y, 1.0f))
-    shader.update(q)
-    glBindVertexArray(q.vao)
-    glEnableVertexAttribArray(0)
-    glBindBuffer(GL_ARRAY_BUFFER, q.vbo)
-    glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0)
-    glEnableVertexAttribArray(1)
-    glBindBuffer(GL_ARRAY_BUFFER, q.tbo)
-    glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0)
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
-    glDisableVertexAttribArray(0)
-    glDisableVertexAttribArray(1)
-    glBindBuffer(GL_ARRAY_BUFFER, 0)    
-  }
-
   def init() {
     initJanela();
     initShaders();
     initMapa();
-    initTextura();
   }
 
-  // Configura e cria janela
+  /**
+   * Configura e cria janela
+   */
   def initJanela() {
     GLFWErrorCallback.createPrint(System.err).set(); // Callback de erro
 
@@ -132,45 +91,96 @@ object Main {
     GL.createCapabilities();
   }
 
+  /**
+   * Inicializa shader
+   */
   def initShaders() {
     shader.loadShader(shader.vertex_shader, shader.fragment_shader)
     shader.getUniformLocations()
   }
 
-  // Carrega e inicializa mapa
+  /**
+   * Aplica uma função em x e y para encontrar as coordenadas do novo quadrado
+   */
+  def calcCoordBloco(c:Char,x:Int,y:Int,numBloco:Int,posx:(Int) => Float,posy:(Int) => Float): Int = {
+    if(c == '1') { 
+      initEntity(1, posx(x), posy(y) - 0.08f, TipoPlay1)
+      quadPly1 = quadarr(1)
+    } else if(c == '2') {
+      initEntity(2, posx(x), posy(y) - 0.08f, TipoPlay2)
+      quadPly2 = quadarr(2)
+    } else {
+      initEntity(numBloco, posx(x), posy(y), c)
+      return numBloco + 1
+    }
+    return numBloco
+  }
+  
+  /**
+   * Carrega e inicializa mapa com janela divida em x por y blocos
+   */
   def initMapa() {
-    val posx = (x: Int) => (2.6f / 23) * x - 1.3f // Coordenada x para bloco no mapa
-    val posy = (y: Int) => (-1.0f / 7.0f) * y // Coordenada y para bloco no mapa
     var x, y = 0
     var numBloco = 3;
     val lines = fromFile("map1.txt").getLines
     for (l <- lines) {
       x = 0;
       for (c <- l) {
-        if (c == '1') {
-          initEntity(quadarr, 1, posx(x), posy(y) - 0.08f, TipoPlay1);
-          quadPly1 = quadarr(1);
-        } else if (c == '2') {
-          initEntity(quadarr, 2, posx(x), posy(y) - 0.08f, TipoPlay2);
-          quadPly2 = quadarr(2);
-        } else {
-          initEntity(quadarr, numBloco, posx(x), posy(y), c);
-          numBloco += 1;
-        }
+        numBloco = calcCoordBloco(c,x,y,numBloco,
+            (x: Int) => ((2.6f / 23) * x - 1.3f), 
+            (y: Int) => (-1.0f / 7.0f) * y );
         x += 1;
       }
       y += 1
     }
 
-    initEntity(quadarr, 0, -0.5f, -0.5f, TipoProj);
-    quadProj = quadarr(0);
-    hideProjetil();
+    initEntity(0, -0.5f, -0.5f, TipoProj)
+    quadProj = quadarr(0)
+    hideProjetil()
 
-    glClearColor(0.41f, 0.57f, 0.94f, 0.0f);
+    glClearColor(0.41f, 0.57f, 0.94f, 0.0f)
+    texture.loadTexture("all.png")
   }
 
-  def initTextura() {
-    texture.loadTexture("all.png")
+  def update() {
+    if (projVoando == 1) animaProjetil()
+    else controleIteracoes(window)
+  }
+
+  /**
+   * Renderiza as entidades do vetor quadarr
+   */
+  def render() {
+    shader.useShader()
+    val outer = new Breaks;
+    outer.breakable {
+      quadarr.map { q => renderEntity(q); }
+    }
+    shader.stopShader()
+
+    drawVetorVelocidade();
+    glfwSwapBuffers(window); // swap the color buffers
+    glfwPollEvents();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  }
+
+  def renderEntity(q: Quad) {
+    shader.modelMatrix = Matrix4f
+      .translate(q.position.x, q.position.y, 0.0f)
+      .multiply(Matrix4f.scale(q.scale.x, q.scale.y, 1.0f))
+    shader.update(q)
+    glBindVertexArray(q.vao)
+    glEnableVertexAttribArray(0)
+    glBindBuffer(GL_ARRAY_BUFFER, q.vbo)
+    glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0)
+    glEnableVertexAttribArray(1)
+    glBindBuffer(GL_ARRAY_BUFFER, q.tbo)
+    glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0)
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0)
+    glDisableVertexAttribArray(0)
+    glDisableVertexAttribArray(1)
+    glBindBuffer(GL_ARRAY_BUFFER, 0)
   }
 
   /**
@@ -179,37 +189,31 @@ object Main {
    */
   def decompoeVelocidade(vi: Float)(ang: Float): (Float, Float) =
     (vi * cos(toRadians(ang)).asInstanceOf[Float],
-      vi * sin(toRadians(ang)).asInstanceOf[Float])
-
+     vi * sin(toRadians(ang)).asInstanceOf[Float])
+  
+  /**
+   * Atualiza a posição do projétil a cada espaço de tempo t
+   */
   def animaProjetil() {
     if (quadProj.position.y > -0.95f && quadProj.position.x > -1.5f && quadProj.position.x < 1.5f) { // Limites da tela
       var t = trajeto;
 
-      var velIni = velIniP1;
-      var ang = angC1;
-      if (turno == 2) {
-        velIni = velIniP2;
-        ang = angC2;
-      }
-      val componentesDaVelocidade = decompoeVelocidade(velIni) _
+      var velIni = if (turno == 1) velIniP1 else velIniP2;
+      var ang = if (turno == 1) angC1 else angC2;
+
+      val componentesDaVelocidade = decompoeVelocidade(velIni)_
       var (vix, viy) = componentesDaVelocidade(ang);
 
-      var variacaoEmx = vix * t;
-      if (turno == 2)
-        variacaoEmx *= -1;
-
+      var variacaoEmx = if (turno == 1) vix * t else -vix * t;
       quadProj.position.x = xiProj + variacaoEmx;
       quadProj.position.y = yiProj + viy * t - (9.8 * (pow(t, 2.0f)) / 2).asInstanceOf[Float];
 
       var colisao = getColisao(quadarr);
       if (colisao != 'N') {
-        if (colisao == '1' || colisao == '2') { // Player jogando ganhou
-          println("PLayer " + turno + " venceu");
+        if (colisao == '1' || colisao == '2')
           animacaoVitoria();
-        } else {
-          println("Colidiu com alguma coisa");
+        else
           finalLancamentoProjetil()
-        }
       }
 
       trajeto += 0.01f;
@@ -219,6 +223,7 @@ object Main {
   }
 
   def animacaoVitoria() {
+    println("PLayer " + turno + " venceu");
     projVoando = 0;
   }
 
@@ -276,6 +281,7 @@ object Main {
       var valorAjuste = 0.5f;
       var angMax = 89.0f;
       var angMin = 0.0f;
+
       if (turno == 1) {
         if (up == 1 && angC1 < angMax)
           angC1 += valorAjuste;
@@ -287,6 +293,7 @@ object Main {
         else if (down == 1 && angC2 > angMin)
           angC2 -= valorAjuste;
       }
+
     } else if (right == 1) {
       if (turno == 1 && velIniP1 < 8.0f)
         velIniP1 += 0.02f;
@@ -350,7 +357,13 @@ object Main {
       return v
     }
 
-  def initEntity(qq: Array[Quad], index: Int, x: Float, y: Float, tipo: Char) {
+  /**
+   * Cria um elemento do jogo.
+   * index: posição no vetor onde será armazenado
+   * x,y: coordenadas
+   * tipo: identificador do tipo de entidade
+   */
+  def initEntity(index: Int, x: Float, y: Float, tipo: Char) {
     var q: Quad = new Quad()
 
     var divisor: Float = 30.0f;
@@ -441,7 +454,7 @@ object Main {
       q.scale.y = escala + escalay;
     }
 
-    qq(index) = q
+    quadarr(index) = q
   }
 
 }
