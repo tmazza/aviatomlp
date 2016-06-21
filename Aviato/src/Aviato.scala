@@ -133,7 +133,6 @@ object Main {
       }
       y += 1
     }
-
     initEntity(0, -0.5f, -0.5f, TipoProj)
     quadProj = quadarr(0)
     hideProjetil()
@@ -192,6 +191,15 @@ object Main {
      vi * sin(toRadians(ang)).asInstanceOf[Float])
   
   /**
+   * Calcula a variação em x. Se Player um está jogando a variação é positivo
+   * se o player 2 está jogando a variação é negativa
+   */
+  def variacaoEmX(turno: Int,a:Float,b:Float): Float = turno match {
+    case 1 => a*b
+    case 2 => -a*b
+  }
+     
+  /**
    * Atualiza a posição do projétil a cada espaço de tempo t
    */
   def animaProjetil() {
@@ -204,8 +212,7 @@ object Main {
       val componentesDaVelocidade = decompoeVelocidade(velIni)_
       var (vix, viy) = componentesDaVelocidade(ang);
 
-      var variacaoEmx = if (turno == 1) vix * t else -vix * t;
-      quadProj.position.x = xiProj + variacaoEmx;
+      quadProj.position.x = xiProj + variacaoEmX(turno,vix,t);
       quadProj.position.y = yiProj + viy * t - (9.8 * (pow(t, 2.0f)) / 2).asInstanceOf[Float];
 
       var colisao = getColisao(quadarr);
@@ -215,15 +222,23 @@ object Main {
         else
           finalLancamentoProjetil()
       }
-
       trajeto += 0.01f;
     } else {
       finalLancamentoProjetil();
     }
   }
-
+  
+  /**
+   * Nome do jogador com turno ativo
+   */
+  def nomePlayer(t: Int): String = t match {
+    case 1 => "Player 1"
+    case 2 => "Player 2"
+    case _ => "John Doe"
+  }
+  
   def animacaoVitoria() {
-    println("PLayer " + turno + " venceu");
+    println(nomePlayer(turno) + " venceu");
     projVoando = 0;
   }
 
